@@ -1,0 +1,11 @@
+---
+- name: Install docker
+  hosts: localhost
+  gather_facts: yes
+
+  tasks:  
+    - name: get VM ip
+      ansible.builtin.setup:
+      register: host_facts
+    - debug:
+        var: host_facts.ansible_facts.ansible_default_ipv4.address

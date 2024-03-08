@@ -1,0 +1,69 @@
+---
+- name: Install docker
+  hosts: all
+  gather_facts: yes
+  become: true
+  
+  pre_tasks:
+    - name: Update all packages
+      apt:
+        update_cache: yes
+    - name: Upgrade all packages
+      apt:
+        upgrade: yes
+        autoremove: yes
+    - name: Install net-tools
+      apt:
+        name: net-tools
+        state: present
+    - name: Install pip3
+      apt:
+        name: python3-pip
+        state: latest
+      tags: docker
+    - name: Install Docker module for Python (used by Ansible)
+      pip:
+        name:
+          - "docker==6.1.3"
+          - "docker-compose"
+        state: latest
+    - name: get VM ip
+      ansible.builtin.setup:
+      register: host_facts
+    - debug:
+        var: host_facts.ansible_facts.ansible_default_ipv4.address
+  vars:
+    ip_vm: "{{ host_facts.ansible_facts.ansible_default_ipv4.address }}"
+
+  roles:
+    - role: docker
+    - role: prometheus.prometheus.node_exporter
+  tasks:
+    - name: debug
+      debug:
+        var: ip_vm
+    - name: Copy directory
+      copy:
+        src: "{{ playbook_dir }}/compose"
+        dest: /home/vagrant
+    - name: generate Docker Compose
+      template:
+        src: "{{ playbook_dir }}/compose/docker-compose.yml.j2"
+        dest: "/home/vagrant/compose/docker-compose.yml"
+    - name: Start docker-compose.yml
+      docker_compose:
+        project_src: /home/vagrant/compose
+      register: docker_compose_result
+    - name: pause to let grafana be ready
+      pause:
+        seconds: 30
+    - name: Import Grafana dashboard node-exporter-full
+      community.grafana.grafana_dashboard:
+        grafana_url: http://localhost:3000
+        grafana_user: "admin"
+        grafana_password: "admin"
+        dashboard_url: https://grafana.com/api/dashboards/1860/revisions/36/download
+        state: present
+    - name: Add data source to grafana
+      shell: |
+        curl -X POST -H "Content-Type: application/json" -d '{"name":"Prometheus", "type":"prometheus", "url":"http://prometheus:9090", "access":"proxy", "isDefault":true}' -u admin:admin http://localhost:3000/api/datasources
