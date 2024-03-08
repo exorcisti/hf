@@ -64,6 +64,6 @@ IP будет проброшен в эту переменную через ша�
     ansible-galaxy collection install community.grafana
 Далее с помощью модуля community.grafana.grafana_dashboard устанавливаем dashboard node-exporter-full.
 Кроме того нужно установить "Data sources", сделаем это в плейбуке с помощью curl:
-url -X POST -H "Content-Type: application/json" -d '{"name":"Prometheus", "type":"prometheus", "url":"http://prometheus:9090", "access":"proxy", "isDefault":true}' -u admin:admin http://localhost:3000/api/datasources
+curl -X POST -H "Content-Type: application/json" -d '{"name":"Prometheus", "type":"prometheus", "url":"http://prometheus:9090", "access":"proxy", "isDefault":true}' -u admin:admin http://localhost:3000/api/datasources
 
 Спасибо что дочитали, хорошего дня!
